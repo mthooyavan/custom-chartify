@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
@@ -42,51 +41,41 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
     };
   }, []);
   
-  // Calculate the circumference
   const radius = 150;
   const strokeWidth = 35;
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   
-  // Calculate the stroke dashoffset based on the score
   const totalScoreSum = badScore + goodScore + standardScore;
   const badRatio = badScore / totalScoreSum;
   const goodRatio = goodScore / totalScoreSum;
   const standardRatio = standardScore / totalScoreSum;
   
-  // Calculate the stroke dash array and offset for each segment
-  // Add a small gap between segments to prevent overlap
-  const gapSize = 0.02 * circumference; // 2% gap between segments
+  const gapSize = 0.04 * circumference;
   
   const badDashArray = circumference * badRatio - gapSize;
   const goodDashArray = circumference * goodRatio - gapSize;
   const standardDashArray = circumference * standardRatio - gapSize;
   
-  // Calculate offsets with gaps
   const badOffset = 0;
   const goodOffset = badDashArray + gapSize;
   const standardOffset = goodOffset + goodDashArray + gapSize;
   
-  // Calculate starting angles
   const badStartAngle = 0;
   const goodStartAngle = badStartAngle + badRatio * 360;
   const standardStartAngle = goodStartAngle + goodRatio * 360;
   
-  // Calculate label positions
   const badLabelPosition = calculateLabelPosition(badStartAngle + badRatio * 360 / 2, radius + 45);
   const goodLabelPosition = calculateLabelPosition(goodStartAngle + goodRatio * 360 / 2, radius + 45);
   const standardLabelPosition = calculateLabelPosition(standardStartAngle + standardRatio * 360 / 2, radius + 45);
   
-  // Calculate the dot position based on score
   const scoreRatio = score / maxScore;
   const scoreAngle = scoreRatio * 360 - 90;
   const dotPosition = calculateLabelPosition(scoreAngle, normalizedRadius);
   
-  // Calculate path for blue line to dot
   const blueLineEndX = dotPosition.x;
   const blueLineEndY = dotPosition.y;
 
-  // Define the shared styles for the circles with rounded stroke caps
   const circleStyles = {
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
@@ -100,7 +89,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
       </div>
       
       <svg width="350" height="350" viewBox="0 0 350 350" className="transform -rotate-90">
-        {/* BAD segment */}
         <circle
           cx="175"
           cy="175"
@@ -118,7 +106,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           } as React.CSSProperties}
         />
         
-        {/* GOOD segment */}
         <circle
           cx="175"
           cy="175"
@@ -136,7 +123,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           } as React.CSSProperties}
         />
         
-        {/* STANDARD segment */}
         <circle
           cx="175"
           cy="175"
@@ -155,7 +141,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         />
       </svg>
       
-      {/* Center circle with gradient and score */}
       <div className="absolute flex flex-col justify-center items-center w-52 h-52 rounded-full bg-gradient-to-b from-gauge-blue/70 to-yellow-200/70 backdrop-blur-sm animate-pulse-gentle">
         <div className="flex justify-center items-center w-16 h-16 mb-1">
           <img 
@@ -176,7 +161,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         </div>
       </div>
       
-      {/* Blue dot and line */}
       <div 
         className={`absolute w-3 h-3 rounded-full bg-gauge-blue shadow-lg transform translate-x-[${dotPosition.x - 175}px] translate-y-[${dotPosition.y - 175}px] ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}
         style={{ 
@@ -186,7 +170,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         }}
       />
       
-      {/* Blue line */}
       <svg className="absolute top-0 left-0 w-full h-full" style={{ zIndex: -1 }}>
         <line
           x1="175"
@@ -204,8 +187,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         />
       </svg>
       
-      {/* Score Labels */}
-      {/* BAD Label */}
       <div 
         className="absolute text-white text-xl font-bold"
         style={{ 
@@ -219,7 +200,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         </div>
       </div>
       
-      {/* GOOD Label */}
       <div 
         className="absolute text-white text-xl font-bold"
         style={{ 
@@ -233,7 +213,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         </div>
       </div>
       
-      {/* STANDARD Label */}
       <div 
         className="absolute text-white text-xl font-bold"
         style={{ 
@@ -250,12 +229,9 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   );
 };
 
-// Helper function to calculate position based on angle and radius
 function calculateLabelPosition(angleDegrees: number, radius: number) {
-  // Convert angle from degrees to radians
   const angleRadians = (angleDegrees * Math.PI) / 180;
   
-  // Calculate x and y coordinates
   const x = 175 + radius * Math.cos(angleRadians);
   const y = 175 + radius * Math.sin(angleRadians);
   
