@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				gauge: {
+					bad: '#ff4d4d',
+					good: '#2de08a',
+					standard: '#ff8f33',
+					blue: '#54d8ff'
 				}
 			},
 			borderRadius: {
@@ -84,11 +91,62 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'scale-in': {
+					'0%': {
+						transform: 'scale(0.95)',
+						opacity: '0'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
+				},
+				'circle-progress': {
+					'0%': { 
+						strokeDashoffset: 'var(--initial-offset)',
+					},
+					'100%': { 
+						strokeDashoffset: 'var(--target-offset)',
+					}
+				},
+				'number-count': {
+					'0%': {
+						'counter-increment': 'count 0'
+					},
+					'100%': {
+						'counter-increment': 'count var(--target-count)'
+					}
+				},
+				'pulse-gentle': {
+					'0%, 100%': {
+						opacity: '1',
+						transform: 'scale(1)'
+					},
+					'50%': {
+						opacity: '0.85',
+						transform: 'scale(1.05)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out forwards',
+				'scale-in': 'scale-in 0.5s ease-out forwards',
+				'circle-progress': 'circle-progress 1.5s ease-out forwards',
+				'number-count': 'number-count 1.5s ease-out forwards',
+				'pulse-gentle': 'pulse-gentle 3s ease-in-out infinite'
 			}
 		}
 	},
