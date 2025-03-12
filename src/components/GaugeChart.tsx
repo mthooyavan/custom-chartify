@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
@@ -54,9 +55,17 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   const standardRatio = standardScore / totalScoreSum;
   
   // Calculate the stroke dash array and offset for each segment
-  const badDashArray = circumference * badRatio;
-  const goodDashArray = circumference * goodRatio;
-  const standardDashArray = circumference * standardRatio;
+  // Add a small gap between segments to prevent overlap
+  const gapSize = 0.02 * circumference; // 2% gap between segments
+  
+  const badDashArray = circumference * badRatio - gapSize;
+  const goodDashArray = circumference * goodRatio - gapSize;
+  const standardDashArray = circumference * standardRatio - gapSize;
+  
+  // Calculate offsets with gaps
+  const badOffset = 0;
+  const goodOffset = badDashArray + gapSize;
+  const standardOffset = goodOffset + goodDashArray + gapSize;
   
   // Calculate starting angles
   const badStartAngle = 0;
@@ -97,11 +106,11 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           cy="175"
           r={normalizedRadius}
           fill="transparent"
-          stroke="transparent"
+          stroke="#ff4d4d"
           strokeWidth={strokeWidth}
           strokeDasharray={`${badDashArray} ${circumference - badDashArray}`}
           strokeDashoffset="0"
-          className={isVisible ? "stroke-gauge-bad animate-circle-progress" : "stroke-gauge-bad"}
+          className={isVisible ? "animate-circle-progress" : ""}
           style={{
             ...circleStyles,
             '--initial-offset': `${circumference}`,
@@ -115,15 +124,15 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           cy="175"
           r={normalizedRadius}
           fill="transparent"
-          stroke="transparent"
+          stroke="#2de08a"
           strokeWidth={strokeWidth}
           strokeDasharray={`${goodDashArray} ${circumference - goodDashArray}`}
-          strokeDashoffset={-badDashArray}
-          className={isVisible ? "stroke-gauge-good animate-circle-progress" : "stroke-gauge-good"}
+          strokeDashoffset={-goodOffset}
+          className={isVisible ? "animate-circle-progress" : ""}
           style={{
             ...circleStyles,
-            '--initial-offset': `${circumference - badDashArray}`,
-            '--target-offset': `${-badDashArray}`,
+            '--initial-offset': `${circumference - goodOffset}`,
+            '--target-offset': `${-goodOffset}`,
           } as React.CSSProperties}
         />
         
@@ -133,15 +142,15 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           cy="175"
           r={normalizedRadius}
           fill="transparent"
-          stroke="transparent"
+          stroke="#ff8f33"
           strokeWidth={strokeWidth}
           strokeDasharray={`${standardDashArray} ${circumference - standardDashArray}`}
-          strokeDashoffset={-(badDashArray + goodDashArray)}
-          className={isVisible ? "stroke-gauge-standard animate-circle-progress" : "stroke-gauge-standard"}
+          strokeDashoffset={-standardOffset}
+          className={isVisible ? "animate-circle-progress" : ""}
           style={{
             ...circleStyles,
-            '--initial-offset': `${circumference - badDashArray - goodDashArray}`,
-            '--target-offset': `${-(badDashArray + goodDashArray)}`,
+            '--initial-offset': `${circumference - standardOffset}`,
+            '--target-offset': `${-standardOffset}`,
           } as React.CSSProperties}
         />
       </svg>
