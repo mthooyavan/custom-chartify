@@ -77,8 +77,10 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   const blueLineEndX = dotPosition.x;
   const blueLineEndY = dotPosition.y;
 
+  // Define the shared styles for the circles with rounded stroke caps
   const circleStyles = {
     strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
     transition: "stroke-dashoffset 1s ease-in-out",
   };
   
