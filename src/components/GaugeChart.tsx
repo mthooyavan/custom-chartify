@@ -132,28 +132,44 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
       
       {/* Labels positioned next to their segment arcs */}
       {segmentsWithAngles.map((segment) => {
-        // Calculate the adjusted angle to position labels outside the chart properly
-        const adjustedAngle = segment.midpointAngle;
+        // We need to revert the -90 degree rotation of the gauge to get correct angles for labels
+        const angleDegrees = segment.midpointAngle + 90;
         
-        // Position labels outside the gauge at various distances based on their position
-        const labelDistance = normalizedRadius + strokeWidth * 1.2;
-        const labelPosition = calculatePosition(adjustedAngle, labelDistance);
+        // Calculate outer position beyond the gauge 
+        const labelDistance = radius + 20; // Position labels outside the gauge
         
-        // Calculate positions for the labels to be placed at the right locations
-        const rotateBack = ((adjustedAngle + 90) % 360) > 180 ? 180 : 0;
+        // Calculate position based on midpoint angle
+        const radian = (angleDegrees * Math.PI) / 180;
+        const x = 175 + labelDistance * Math.cos(radian);
+        const y = 175 + labelDistance * Math.sin(radian);
+        
+        // Determine horizontal alignment based on position in circle
+        // Left side labels align right, right side labels align left
+        const isRightHalf = angleDegrees > 270 || angleDegrees < 90;
+        const horizontalAlign = isRightHalf ? "start" : "end";
+        
+        // Determine vertical alignment based on position
+        const isTopHalf = angleDegrees > 0 && angleDegrees < 180;
+        const verticalAlign = isTopHalf ? "start" : "end";
+        
+        // Text anchor determines how the text aligns relative to the point
+        const textAnchor = isRightHalf ? "start" : "end";
+        
+        // Label container positioning and alignment
+        const labelStyle = {
+          left: `${x}px`,
+          top: `${y}px`,
+          textAlign: horizontalAlign as "start" | "end" | "center",
+        };
         
         return (
-          <div 
+          <div
             key={`label-${segment.id}`}
             className="absolute"
-            style={{ 
-              left: `${labelPosition.x}px`, 
-              top: `${labelPosition.y}px`,
-              transform: `translate(-50%, -50%)`,
-            }}
+            style={labelStyle}
           >
-            <div 
-              className="flex flex-col items-center whitespace-nowrap"
+            <div
+              className={`flex flex-col items-${horizontalAlign === "start" ? "start" : "end"} whitespace-nowrap`}
             >
               <div className="text-2xl font-bold" style={{ color: segment.color }}>
                 {segment.label}
