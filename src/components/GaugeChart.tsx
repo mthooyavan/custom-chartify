@@ -2,21 +2,25 @@
 import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
 
+// Define interfaces for our chart data
+interface ChartSegment {
+  id: string;
+  value: number;
+  color: string;
+  label: string;
+}
+
 interface GaugeChartProps {
   score: number;
   maxScore?: number;
-  badScore?: number;
-  goodScore?: number;
-  standardScore?: number;
+  chartData: ChartSegment[];
   className?: string;
 }
 
 const GaugeChart: React.FC<GaugeChartProps> = ({
   score,
   maxScore = 30,
-  badScore = 10,
-  goodScore = 8,
-  standardScore = 4,
+  chartData,
   className
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
@@ -26,36 +30,20 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   
-  const totalScoreSum = badScore + goodScore + standardScore;
-  const badRatio = badScore / totalScoreSum;
-  const goodRatio = goodScore / totalScoreSum;
-  const standardRatio = standardScore / totalScoreSum;
+  // Calculate total value of all segments
+  const totalValue = chartData.reduce((sum, segment) => sum + segment.value, 0);
   
+  // Calculate ratios and positions for each segment
   const gapSize = 0.04 * circumference;
   
-  const badDashArray = circumference * badRatio - gapSize;
-  const goodDashArray = circumference * goodRatio - gapSize;
-  const standardDashArray = circumference * standardRatio - gapSize;
+  let currentOffset = 0;
+  let currentAngle = 0;
   
-  const badOffset = 0;
-  const goodOffset = badDashArray + gapSize;
-  const standardOffset = goodOffset + goodDashArray + gapSize;
-  
-  const badStartAngle = 0;
-  const goodStartAngle = badStartAngle + badRatio * 360;
-  const standardStartAngle = goodStartAngle + goodRatio * 360;
-  
-  const badLabelPosition = calculateLabelPosition(badStartAngle + badRatio * 360 / 2, radius + 45);
-  const goodLabelPosition = calculateLabelPosition(goodStartAngle + goodRatio * 360 / 2, radius + 45);
-  const standardLabelPosition = calculateLabelPosition(standardStartAngle + standardRatio * 360 / 2, radius + 45);
-  
+  // Score position calculation
   const scoreRatio = score / maxScore;
   const scoreAngle = scoreRatio * 360 - 90;
   const dotPosition = calculateLabelPosition(scoreAngle, normalizedRadius);
   
-  const blueLineEndX = dotPosition.x;
-  const blueLineEndY = dotPosition.y;
-
   const circleStyles = {
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
@@ -68,41 +56,30 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
       </div>
       
       <svg width="350" height="350" viewBox="0 0 350 350" className="transform -rotate-90">
-        <circle
-          cx="175"
-          cy="175"
-          r={normalizedRadius}
-          fill="transparent"
-          stroke="#ff4d4d"
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${badDashArray} ${circumference - badDashArray}`}
-          strokeDashoffset="0"
-          style={circleStyles}
-        />
-        
-        <circle
-          cx="175"
-          cy="175"
-          r={normalizedRadius}
-          fill="transparent"
-          stroke="#2de08a"
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${goodDashArray} ${circumference - goodDashArray}`}
-          strokeDashoffset={-goodOffset}
-          style={circleStyles}
-        />
-        
-        <circle
-          cx="175"
-          cy="175"
-          r={normalizedRadius}
-          fill="transparent"
-          stroke="#ff8f33"
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${standardDashArray} ${circumference - standardDashArray}`}
-          strokeDashoffset={-standardOffset}
-          style={circleStyles}
-        />
+        {chartData.map((segment, index) => {
+          const segmentRatio = segment.value / totalValue;
+          const dashArray = circumference * segmentRatio - gapSize;
+          const dashOffset = -currentOffset;
+          
+          const startAngle = currentAngle;
+          currentOffset += dashArray + gapSize;
+          currentAngle += segmentRatio * 360;
+          
+          return (
+            <circle
+              key={segment.id}
+              cx="175"
+              cy="175"
+              r={normalizedRadius}
+              fill="transparent"
+              stroke={segment.color}
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${dashArray} ${circumference - dashArray}`}
+              strokeDashoffset={dashOffset}
+              style={circleStyles}
+            />
+          );
+        })}
       </svg>
       
       <div className="absolute flex flex-col justify-center items-center w-52 h-52 rounded-full bg-gradient-to-b from-gauge-blue/70 to-yellow-200/70 backdrop-blur-sm">
@@ -132,8 +109,8 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         <line
           x1="175"
           y1="175"
-          x2={blueLineEndX}
-          y2={blueLineEndY}
+          x2={dotPosition.x}
+          y2={dotPosition.y}
           stroke="#54d8ff"
           strokeWidth="2"
           strokeDasharray="5 3"
@@ -141,71 +118,41 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         />
       </svg>
       
-      <div className="absolute text-white text-xl font-bold"
-        style={{ 
-          left: `${badLabelPosition.x - 10}px`, 
-          top: `${badLabelPosition.y - 25}px`,
-        }}
-      >
-        <div className="flex flex-col items-center justify-center">
-          <div className="text-red-500 mb-1">BAD</div>
-          <div className="text-gauge-bad">{badScore}</div>
-        </div>
-      </div>
-      
-      <div className="absolute text-white text-xl font-bold"
-        style={{ 
-          left: `${goodLabelPosition.x - 10}px`, 
-          top: `${goodLabelPosition.y - 25}px`,
-        }}
-      >
-        <div className="flex flex-col items-center justify-center">
-          <div className="text-green-500 mb-1">GOOD</div>
-          <div className="text-gauge-good">{goodScore}</div>
-        </div>
-      </div>
-      
-      <div className="absolute text-white text-xl font-bold"
-        style={{ 
-          left: `${standardLabelPosition.x - 15}px`, 
-          top: `${standardLabelPosition.y - 25}px`,
-        }}
-      >
-        <div className="flex flex-col items-center justify-center">
-          <div className="text-orange-500 mb-1">STANDARD</div>
-          <div className="text-gauge-standard">{standardScore}</div>
-        </div>
-      </div>
-      
-      <svg className="absolute top-0 left-0 w-full h-full" style={{ zIndex: -1 }}>
-        <line
-          x1="175"
-          y1="175"
-          x2={badLabelPosition.x}
-          y2={badLabelPosition.y}
-          stroke="#ff4d4d"
-          strokeWidth="1"
-          strokeDasharray="3 2"
-        />
-        <line
-          x1="175"
-          y1="175"
-          x2={goodLabelPosition.x}
-          y2={goodLabelPosition.y}
-          stroke="#2de08a"
-          strokeWidth="1"
-          strokeDasharray="3 2"
-        />
-        <line
-          x1="175"
-          y1="175"
-          x2={standardLabelPosition.x}
-          y2={standardLabelPosition.y}
-          stroke="#ff8f33"
-          strokeWidth="1"
-          strokeDasharray="3 2"
-        />
-      </svg>
+      {/* Label positions and connector lines */}
+      {chartData.map((segment, index) => {
+        const segmentRatio = segment.value / totalValue;
+        const segmentStartAngle = currentAngle - segmentRatio * 360;
+        const labelAngle = segmentStartAngle + segmentRatio * 360 / 2;
+        const labelPosition = calculateLabelPosition(labelAngle, radius + 45);
+        
+        return (
+          <React.Fragment key={segment.id}>
+            <div className="absolute text-white text-xl font-bold"
+              style={{ 
+                left: `${labelPosition.x - 15}px`, 
+                top: `${labelPosition.y - 25}px`,
+              }}
+            >
+              <div className="flex flex-col items-center justify-center">
+                <div className={`text-${segment.color} mb-1`} style={{ color: segment.color }}>{segment.label}</div>
+                <div style={{ color: segment.color }}>{segment.value}</div>
+              </div>
+            </div>
+            
+            <svg className="absolute top-0 left-0 w-full h-full" style={{ zIndex: -1 }}>
+              <line
+                x1="175"
+                y1="175"
+                x2={labelPosition.x}
+                y2={labelPosition.y}
+                stroke={segment.color}
+                strokeWidth="1"
+                strokeDasharray="3 2"
+              />
+            </svg>
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };
