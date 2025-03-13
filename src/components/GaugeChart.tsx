@@ -1,5 +1,5 @@
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface GaugeChartProps {
@@ -20,11 +20,28 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   className
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 350, height: 350 });
   
-  const radius = 150;
-  const strokeWidth = 35;
+  useEffect(() => {
+    const updateSize = () => {
+      if (chartRef.current) {
+        const containerWidth = chartRef.current.clientWidth;
+        const size = Math.min(containerWidth, 350);
+        setDimensions({ width: size, height: size });
+      }
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+  
+  const radius = dimensions.width * 0.428; // Adjusted to be proportional 
+  const strokeWidth = dimensions.width * 0.1; // Adjusted to be proportional
   const normalizedRadius = radius - strokeWidth / 2;
   const circumference = normalizedRadius * 2 * Math.PI;
+  const centerX = dimensions.width / 2;
+  const centerY = dimensions.height / 2;
   
   const totalScoreSum = badScore + goodScore + standardScore;
   const badRatio = badScore / totalScoreSum;
@@ -45,13 +62,25 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   const goodStartAngle = badStartAngle + badRatio * 360;
   const standardStartAngle = goodStartAngle + goodRatio * 360;
   
-  const badLabelPosition = calculateLabelPosition(badStartAngle + badRatio * 360 / 2, radius + 45);
-  const goodLabelPosition = calculateLabelPosition(goodStartAngle + goodRatio * 360 / 2, radius + 45);
-  const standardLabelPosition = calculateLabelPosition(standardStartAngle + standardRatio * 360 / 2, radius + 45);
+  // Calculate the middle angle of each segment for label positioning
+  const badMidAngle = badStartAngle + (badRatio * 360) / 2;
+  const goodMidAngle = goodStartAngle + (goodRatio * 360) / 2;
+  const standardMidAngle = standardStartAngle + (standardRatio * 360) / 2;
+  
+  // Position labels a bit further outside the chart
+  const labelRadius = radius + strokeWidth * 2;
+  const badLabelPosition = calculateLabelPosition(badMidAngle, labelRadius, centerX, centerY);
+  const goodLabelPosition = calculateLabelPosition(goodMidAngle, labelRadius, centerX, centerY);
+  const standardLabelPosition = calculateLabelPosition(standardMidAngle, labelRadius, centerX, centerY);
+  
+  // Calculate connector line points (midpoint of each segment)
+  const badConnector = calculateLabelPosition(badMidAngle, radius, centerX, centerY);
+  const goodConnector = calculateLabelPosition(goodMidAngle, radius, centerX, centerY);
+  const standardConnector = calculateLabelPosition(standardMidAngle, radius, centerX, centerY);
   
   const scoreRatio = score / maxScore;
   const scoreAngle = scoreRatio * 360 - 90;
-  const dotPosition = calculateLabelPosition(scoreAngle, normalizedRadius);
+  const dotPosition = calculateLabelPosition(scoreAngle, normalizedRadius, centerX, centerY);
   
   const blueLineEndX = dotPosition.x;
   const blueLineEndY = dotPosition.y;
@@ -67,10 +96,10 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         OVERALL SCORE
       </div>
       
-      <svg width="350" height="350" viewBox="0 0 350 350" className="transform -rotate-90">
+      <svg width={dimensions.width} height={dimensions.height} viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} className="transform -rotate-90">
         <circle
-          cx="175"
-          cy="175"
+          cx={centerX}
+          cy={centerY}
           r={normalizedRadius}
           fill="transparent"
           stroke="#ff4d4d"
@@ -81,8 +110,8 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         />
         
         <circle
-          cx="175"
-          cy="175"
+          cx={centerX}
+          cy={centerY}
           r={normalizedRadius}
           fill="transparent"
           stroke="#2de08a"
@@ -93,8 +122,8 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         />
         
         <circle
-          cx="175"
-          cy="175"
+          cx={centerX}
+          cy={centerY}
           r={normalizedRadius}
           fill="transparent"
           stroke="#ff8f33"
@@ -105,16 +134,16 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         />
       </svg>
       
-      <div className="absolute flex flex-col justify-center items-center w-52 h-52 rounded-full bg-gradient-to-b from-gauge-blue/70 to-yellow-200/70 backdrop-blur-sm">
-        <div className="flex justify-center items-center w-16 h-16 mb-1">
+      <div className="absolute flex flex-col justify-center items-center w-1/2 h-1/2 rounded-full bg-gradient-to-b from-gauge-blue/70 to-yellow-200/70 backdrop-blur-sm">
+        <div className="flex justify-center items-center w-1/3 h-1/3 mb-1">
           <img 
             src="/lovable-uploads/c46fbd78-ebc8-4d17-af8f-c83fb3f5d82e.png" 
             alt="Score Icon" 
-            className="w-14 h-14 object-contain"
+            className="w-full h-full object-contain"
           />
         </div>
         <div className="text-black/80 text-lg font-semibold">Overall Score</div>
-        <div className="text-black text-6xl font-bold mt-1">
+        <div className="text-black text-4xl md:text-5xl lg:text-6xl font-bold mt-1">
           {score}
         </div>
       </div>
@@ -130,8 +159,8 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
       
       <svg className="absolute top-0 left-0 w-full h-full" style={{ zIndex: -1 }}>
         <line
-          x1="175"
-          y1="175"
+          x1={centerX}
+          y1={centerY}
           x2={blueLineEndX}
           y2={blueLineEndY}
           stroke="#54d8ff"
@@ -141,10 +170,73 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         />
       </svg>
       
-      <div className="absolute text-white text-xl font-bold"
+      {/* Label connectors */}
+      <svg className="absolute top-0 left-0 w-full h-full" style={{ zIndex: -1 }}>
+        <line
+          x1={centerX}
+          y1={centerY}
+          x2={badConnector.x}
+          y2={badConnector.y}
+          stroke="#ff4d4d"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+        <line
+          x1={centerX}
+          y1={centerY}
+          x2={goodConnector.x}
+          y2={goodConnector.y}
+          stroke="#2de08a"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+        <line
+          x1={centerX}
+          y1={centerY}
+          x2={standardConnector.x}
+          y2={standardConnector.y}
+          stroke="#ff8f33"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+        
+        {/* Extended connector lines to labels */}
+        <line
+          x1={badConnector.x}
+          y1={badConnector.y}
+          x2={badLabelPosition.x}
+          y2={badLabelPosition.y}
+          stroke="#ff4d4d"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+        <line
+          x1={goodConnector.x}
+          y1={goodConnector.y}
+          x2={goodLabelPosition.x}
+          y2={goodLabelPosition.y}
+          stroke="#2de08a"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+        <line
+          x1={standardConnector.x}
+          y1={standardConnector.y}
+          x2={standardLabelPosition.x}
+          y2={standardLabelPosition.y}
+          stroke="#ff8f33"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+      </svg>
+      
+      {/* Labels positioned correctly by their segments */}
+      <div 
+        className="absolute text-white text-sm sm:text-base md:text-lg lg:text-xl font-bold"
         style={{ 
-          left: `${badLabelPosition.x - 10}px`, 
-          top: `${badLabelPosition.y - 25}px`,
+          left: `${badLabelPosition.x}px`, 
+          top: `${badLabelPosition.y}px`,
+          transform: 'translate(-50%, -50%)',
         }}
       >
         <div className="flex flex-col items-center justify-center">
@@ -153,10 +245,12 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         </div>
       </div>
       
-      <div className="absolute text-white text-xl font-bold"
+      <div 
+        className="absolute text-white text-sm sm:text-base md:text-lg lg:text-xl font-bold"
         style={{ 
-          left: `${goodLabelPosition.x - 10}px`, 
-          top: `${goodLabelPosition.y - 25}px`,
+          left: `${goodLabelPosition.x}px`, 
+          top: `${goodLabelPosition.y}px`,
+          transform: 'translate(-50%, -50%)',
         }}
       >
         <div className="flex flex-col items-center justify-center">
@@ -165,10 +259,12 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         </div>
       </div>
       
-      <div className="absolute text-white text-xl font-bold"
+      <div 
+        className="absolute text-white text-sm sm:text-base md:text-lg lg:text-xl font-bold"
         style={{ 
-          left: `${standardLabelPosition.x - 15}px`, 
-          top: `${standardLabelPosition.y - 25}px`,
+          left: `${standardLabelPosition.x}px`, 
+          top: `${standardLabelPosition.y}px`,
+          transform: 'translate(-50%, -50%)',
         }}
       >
         <div className="flex flex-col items-center justify-center">
@@ -176,45 +272,15 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           <div className="text-gauge-standard">{standardScore}</div>
         </div>
       </div>
-      
-      <svg className="absolute top-0 left-0 w-full h-full" style={{ zIndex: -1 }}>
-        <line
-          x1="175"
-          y1="175"
-          x2={badLabelPosition.x}
-          y2={badLabelPosition.y}
-          stroke="#ff4d4d"
-          strokeWidth="1"
-          strokeDasharray="3 2"
-        />
-        <line
-          x1="175"
-          y1="175"
-          x2={goodLabelPosition.x}
-          y2={goodLabelPosition.y}
-          stroke="#2de08a"
-          strokeWidth="1"
-          strokeDasharray="3 2"
-        />
-        <line
-          x1="175"
-          y1="175"
-          x2={standardLabelPosition.x}
-          y2={standardLabelPosition.y}
-          stroke="#ff8f33"
-          strokeWidth="1"
-          strokeDasharray="3 2"
-        />
-      </svg>
     </div>
   );
 };
 
-function calculateLabelPosition(angleDegrees: number, radius: number) {
+function calculateLabelPosition(angleDegrees: number, radius: number, centerX: number, centerY: number) {
   const angleRadians = (angleDegrees * Math.PI) / 180;
   
-  const x = 175 + radius * Math.cos(angleRadians);
-  const y = 175 + radius * Math.sin(angleRadians);
+  const x = centerX + radius * Math.cos(angleRadians);
+  const y = centerY + radius * Math.sin(angleRadians);
   
   return { x, y };
 }
