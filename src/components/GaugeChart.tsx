@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
+
+import React, { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface GaugeChartProps {
@@ -18,28 +19,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   standardScore = 4,
   className
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    
-    if (chartRef.current) {
-      observer.observe(chartRef.current);
-    }
-    
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
   
   const radius = 150;
   const strokeWidth = 35;
@@ -79,7 +59,6 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   const circleStyles = {
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
-    transition: "stroke-dashoffset 1s ease-in-out",
   };
   
   return (
@@ -98,12 +77,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           strokeWidth={strokeWidth}
           strokeDasharray={`${badDashArray} ${circumference - badDashArray}`}
           strokeDashoffset="0"
-          className={isVisible ? "animate-circle-progress" : ""}
-          style={{
-            ...circleStyles,
-            '--initial-offset': `${circumference}`,
-            '--target-offset': '0',
-          } as React.CSSProperties}
+          style={circleStyles}
         />
         
         <circle
@@ -115,12 +89,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           strokeWidth={strokeWidth}
           strokeDasharray={`${goodDashArray} ${circumference - goodDashArray}`}
           strokeDashoffset={-goodOffset}
-          className={isVisible ? "animate-circle-progress" : ""}
-          style={{
-            ...circleStyles,
-            '--initial-offset': `${circumference - goodOffset}`,
-            '--target-offset': `${-goodOffset}`,
-          } as React.CSSProperties}
+          style={circleStyles}
         />
         
         <circle
@@ -132,16 +101,11 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           strokeWidth={strokeWidth}
           strokeDasharray={`${standardDashArray} ${circumference - standardDashArray}`}
           strokeDashoffset={-standardOffset}
-          className={isVisible ? "animate-circle-progress" : ""}
-          style={{
-            ...circleStyles,
-            '--initial-offset': `${circumference - standardOffset}`,
-            '--target-offset': `${-standardOffset}`,
-          } as React.CSSProperties}
+          style={circleStyles}
         />
       </svg>
       
-      <div className="absolute flex flex-col justify-center items-center w-52 h-52 rounded-full bg-gradient-to-b from-gauge-blue/70 to-yellow-200/70 backdrop-blur-sm animate-pulse-gentle">
+      <div className="absolute flex flex-col justify-center items-center w-52 h-52 rounded-full bg-gradient-to-b from-gauge-blue/70 to-yellow-200/70 backdrop-blur-sm">
         <div className="flex justify-center items-center w-16 h-16 mb-1">
           <img 
             src="/lovable-uploads/c46fbd78-ebc8-4d17-af8f-c83fb3f5d82e.png" 
@@ -151,18 +115,12 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         </div>
         <div className="text-black/80 text-lg font-semibold">Overall Score</div>
         <div className="text-black text-6xl font-bold mt-1">
-          {isVisible ? (
-            <span key={score} className="inline-block animate-scale-in">
-              {score}
-            </span>
-          ) : (
-            <span>{score}</span>
-          )}
+          {score}
         </div>
       </div>
       
       <div 
-        className={`absolute w-3 h-3 rounded-full bg-gauge-blue shadow-lg transform translate-x-[${dotPosition.x - 175}px] translate-y-[${dotPosition.y - 175}px] ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}
+        className="absolute w-3 h-3 rounded-full bg-gauge-blue shadow-lg"
         style={{ 
           left: `${dotPosition.x}px`, 
           top: `${dotPosition.y}px`,
@@ -179,52 +137,75 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
           stroke="#54d8ff"
           strokeWidth="2"
           strokeDasharray="5 3"
-          className={isVisible ? "animate-fade-in" : "opacity-0"}
-          style={{ 
-            animationDelay: "0.8s",
-            strokeLinecap: "round" 
-          }}
+          style={{ strokeLinecap: "round" }}
         />
       </svg>
       
-      <div 
-        className="absolute text-white text-xl font-bold"
+      <div className="absolute text-white text-xl font-bold"
         style={{ 
           left: `${badLabelPosition.x - 10}px`, 
           top: `${badLabelPosition.y - 25}px`,
         }}
       >
-        <div className="flex flex-col items-center justify-center animate-fade-in" style={{ animationDelay: "0.2s" }}>
+        <div className="flex flex-col items-center justify-center">
           <div className="text-red-500 mb-1">BAD</div>
           <div className="text-gauge-bad">{badScore}</div>
         </div>
       </div>
       
-      <div 
-        className="absolute text-white text-xl font-bold"
+      <div className="absolute text-white text-xl font-bold"
         style={{ 
           left: `${goodLabelPosition.x - 10}px`, 
           top: `${goodLabelPosition.y - 25}px`,
         }}
       >
-        <div className="flex flex-col items-center justify-center animate-fade-in" style={{ animationDelay: "0.4s" }}>
+        <div className="flex flex-col items-center justify-center">
           <div className="text-green-500 mb-1">GOOD</div>
           <div className="text-gauge-good">{goodScore}</div>
         </div>
       </div>
       
-      <div 
-        className="absolute text-white text-xl font-bold"
+      <div className="absolute text-white text-xl font-bold"
         style={{ 
           left: `${standardLabelPosition.x - 15}px`, 
           top: `${standardLabelPosition.y - 25}px`,
         }}
       >
-        <div className="flex flex-col items-center justify-center animate-fade-in" style={{ animationDelay: "0.6s" }}>
+        <div className="flex flex-col items-center justify-center">
           <div className="text-orange-500 mb-1">STANDARD</div>
           <div className="text-gauge-standard">{standardScore}</div>
         </div>
       </div>
+      
+      <svg className="absolute top-0 left-0 w-full h-full" style={{ zIndex: -1 }}>
+        <line
+          x1="175"
+          y1="175"
+          x2={badLabelPosition.x}
+          y2={badLabelPosition.y}
+          stroke="#ff4d4d"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+        <line
+          x1="175"
+          y1="175"
+          x2={goodLabelPosition.x}
+          y2={goodLabelPosition.y}
+          stroke="#2de08a"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+        <line
+          x1="175"
+          y1="175"
+          x2={standardLabelPosition.x}
+          y2={standardLabelPosition.y}
+          stroke="#ff8f33"
+          strokeWidth="1"
+          strokeDasharray="3 2"
+        />
+      </svg>
     </div>
   );
 };
