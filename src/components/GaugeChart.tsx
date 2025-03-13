@@ -11,19 +11,18 @@ interface ChartSegment {
 }
 
 interface GaugeChartProps {
-  score: number;
-  maxScore?: number;
   chartData: ChartSegment[];
   className?: string;
 }
 
 const GaugeChart: React.FC<GaugeChartProps> = ({
-  score,
-  maxScore = 30,
   chartData,
   className
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  
+  // Calculate total score from chartData
+  const totalScore = chartData.reduce((sum, segment) => sum + segment.value, 0);
   
   const radius = 150;
   const strokeWidth = 35;
@@ -40,7 +39,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   let currentAngle = -90; // Start at top (-90 degrees)
   
   // Score position calculation
-  const scoreRatio = score / maxScore;
+  const scoreRatio = 1; // Always at the top of the chart
   const scoreAngle = scoreRatio * 360 - 90;
   const dotPosition = calculatePosition(scoreAngle, normalizedRadius);
   
@@ -105,7 +104,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         </div>
         <div className="text-black/80 text-lg font-semibold">Overall Score</div>
         <div className="text-black text-6xl font-bold mt-1">
-          {score}
+          {totalScore}
         </div>
       </div>
       
@@ -133,20 +132,28 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
       
       {/* Labels positioned next to their segment arcs */}
       {segmentsWithAngles.map((segment) => {
-        // Position labels at the middle of each segment and push them outward
-        // Adjust rotation to make the text appear properly oriented
-        const labelDistance = normalizedRadius + strokeWidth + 20;
-        const labelPosition = calculatePosition(segment.midpointAngle, labelDistance);
+        // Calculate the adjusted angle to position labels outside the chart properly
+        const adjustedAngle = segment.midpointAngle;
+        
+        // Position labels outside the gauge at various distances based on their position
+        const labelDistance = normalizedRadius + strokeWidth * 1.2;
+        const labelPosition = calculatePosition(adjustedAngle, labelDistance);
+        
+        // Calculate positions for the labels to be placed at the right locations
+        const rotateBack = ((adjustedAngle + 90) % 360) > 180 ? 180 : 0;
         
         return (
-          <React.Fragment key={`label-${segment.id}`}>
+          <div 
+            key={`label-${segment.id}`}
+            className="absolute"
+            style={{ 
+              left: `${labelPosition.x}px`, 
+              top: `${labelPosition.y}px`,
+              transform: `translate(-50%, -50%)`,
+            }}
+          >
             <div 
-              className="absolute flex flex-col items-center pointer-events-none whitespace-nowrap"
-              style={{ 
-                left: `${labelPosition.x}px`, 
-                top: `${labelPosition.y}px`,
-                transform: 'translate(-50%, -50%)'
-              }}
+              className="flex flex-col items-center whitespace-nowrap"
             >
               <div className="text-2xl font-bold" style={{ color: segment.color }}>
                 {segment.label}
@@ -155,7 +162,7 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
                 {segment.value}
               </div>
             </div>
-          </React.Fragment>
+          </div>
         );
       })}
     </div>
