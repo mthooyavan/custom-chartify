@@ -37,17 +37,40 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   const gapSize = 0.04 * circumference;
   
   let currentOffset = 0;
-  let currentAngle = 0;
+  let currentAngle = -90; // Start at top (-90 degrees)
   
   // Score position calculation
   const scoreRatio = score / maxScore;
   const scoreAngle = scoreRatio * 360 - 90;
-  const dotPosition = calculateLabelPosition(scoreAngle, normalizedRadius);
+  const dotPosition = calculatePosition(scoreAngle, normalizedRadius);
   
   const circleStyles = {
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
   };
+  
+  // Process segments to calculate angles for positioning labels
+  const segmentsWithAngles = chartData.map((segment) => {
+    const segmentRatio = segment.value / totalValue;
+    const dashArray = circumference * segmentRatio - gapSize;
+    const dashOffset = -currentOffset;
+    
+    const startAngle = currentAngle;
+    currentOffset += dashArray + gapSize;
+    
+    // Calculate midpoint angle for label positioning
+    const midpointAngle = startAngle + (segmentRatio * 360) / 2;
+    currentAngle += segmentRatio * 360;
+    
+    return {
+      ...segment,
+      dashArray,
+      dashOffset,
+      startAngle,
+      endAngle: currentAngle,
+      midpointAngle
+    };
+  });
   
   return (
     <div ref={chartRef} className={cn("relative flex items-center justify-center w-full max-w-md mx-auto", className)}>
@@ -56,30 +79,20 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
       </div>
       
       <svg width="350" height="350" viewBox="0 0 350 350" className="transform -rotate-90">
-        {chartData.map((segment, index) => {
-          const segmentRatio = segment.value / totalValue;
-          const dashArray = circumference * segmentRatio - gapSize;
-          const dashOffset = -currentOffset;
-          
-          const startAngle = currentAngle;
-          currentOffset += dashArray + gapSize;
-          currentAngle += segmentRatio * 360;
-          
-          return (
-            <circle
-              key={segment.id}
-              cx="175"
-              cy="175"
-              r={normalizedRadius}
-              fill="transparent"
-              stroke={segment.color}
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${dashArray} ${circumference - dashArray}`}
-              strokeDashoffset={dashOffset}
-              style={circleStyles}
-            />
-          );
-        })}
+        {segmentsWithAngles.map((segment, index) => (
+          <circle
+            key={segment.id}
+            cx="175"
+            cy="175"
+            r={normalizedRadius}
+            fill="transparent"
+            stroke={segment.color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${segment.dashArray} ${circumference - segment.dashArray}`}
+            strokeDashoffset={segment.dashOffset}
+            style={circleStyles}
+          />
+        ))}
       </svg>
       
       <div className="absolute flex flex-col justify-center items-center w-52 h-52 rounded-full bg-gradient-to-b from-gauge-blue/70 to-yellow-200/70 backdrop-blur-sm">
@@ -118,38 +131,30 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
         />
       </svg>
       
-      {/* Label positions and connector lines */}
-      {chartData.map((segment, index) => {
-        const segmentRatio = segment.value / totalValue;
-        const segmentStartAngle = currentAngle - segmentRatio * 360;
-        const labelAngle = segmentStartAngle + segmentRatio * 360 / 2;
-        const labelPosition = calculateLabelPosition(labelAngle, radius + 45);
+      {/* Labels positioned next to their segment arcs */}
+      {segmentsWithAngles.map((segment) => {
+        // Position labels at the middle of each segment and push them outward
+        // Adjust rotation to make the text appear properly oriented
+        const labelDistance = normalizedRadius + strokeWidth + 20;
+        const labelPosition = calculatePosition(segment.midpointAngle, labelDistance);
         
         return (
-          <React.Fragment key={segment.id}>
-            <div className="absolute text-white text-xl font-bold"
+          <React.Fragment key={`label-${segment.id}`}>
+            <div 
+              className="absolute flex flex-col items-center pointer-events-none whitespace-nowrap"
               style={{ 
-                left: `${labelPosition.x - 15}px`, 
-                top: `${labelPosition.y - 25}px`,
+                left: `${labelPosition.x}px`, 
+                top: `${labelPosition.y}px`,
+                transform: 'translate(-50%, -50%)'
               }}
             >
-              <div className="flex flex-col items-center justify-center">
-                <div className={`text-${segment.color} mb-1`} style={{ color: segment.color }}>{segment.label}</div>
-                <div style={{ color: segment.color }}>{segment.value}</div>
+              <div className="text-2xl font-bold" style={{ color: segment.color }}>
+                {segment.label}
+              </div>
+              <div className="text-xl font-bold" style={{ color: segment.color }}>
+                {segment.value}
               </div>
             </div>
-            
-            <svg className="absolute top-0 left-0 w-full h-full" style={{ zIndex: -1 }}>
-              <line
-                x1="175"
-                y1="175"
-                x2={labelPosition.x}
-                y2={labelPosition.y}
-                stroke={segment.color}
-                strokeWidth="1"
-                strokeDasharray="3 2"
-              />
-            </svg>
           </React.Fragment>
         );
       })}
@@ -157,11 +162,13 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
   );
 };
 
-function calculateLabelPosition(angleDegrees: number, radius: number) {
-  const angleRadians = (angleDegrees * Math.PI) / 180;
+// Helper function to calculate x,y coordinates from angle and radius
+function calculatePosition(angleDegrees: number, radius: number) {
+  // Convert from chart angle (where 0 is at top) to standard angle (where 0 is at right)
+  const angleInRadians = ((angleDegrees + 90) * Math.PI) / 180;
   
-  const x = 175 + radius * Math.cos(angleRadians);
-  const y = 175 + radius * Math.sin(angleRadians);
+  const x = 175 + radius * Math.cos(angleInRadians);
+  const y = 175 + radius * Math.sin(angleInRadians);
   
   return { x, y };
 }

@@ -26,7 +26,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black p-6">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md md:max-w-lg lg:max-w-xl">
         <GaugeChart 
           score={26} 
           maxScore={30}
