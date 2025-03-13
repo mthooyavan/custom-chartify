@@ -132,70 +132,51 @@ const GaugeChart: React.FC<GaugeChartProps> = ({
       
       {/* Labels positioned next to their segment arcs */}
       {segmentsWithAngles.map((segment) => {
-        // Convert midpoint angle from gauge angle to standard angle for positioning
-        // Add 90 degrees because our gauge starts at -90 (top) in SVG coordinates
-        const angleRadians = ((segment.midpointAngle + 90) * Math.PI) / 180;
+        // We need to revert the -90 degree rotation of the gauge to get correct angles for labels
+        const angleDegrees = segment.midpointAngle + 90;
         
-        // Get the specific position for each segment based on its ID
-        let labelPosition;
+        // Calculate outer position beyond the gauge 
+        const labelDistance = radius + 20; // Position labels outside the gauge
         
-        if (segment.id === "bad") {
-          // Position the BAD label at the bottom
-          labelPosition = {
-            x: 175,
-            y: 320
-          };
-        } else if (segment.id === "good") {
-          // Position the GOOD label at the top-left
-          labelPosition = {
-            x: 75,
-            y: 235
-          };
-        } else if (segment.id === "standard") {
-          // Position the STANDARD label at the top-right
-          labelPosition = {
-            x: 275,
-            y: 235
-          };
-        } else {
-          // Fallback for any other segments
-          const labelDistance = radius + 40;
-          labelPosition = {
-            x: 175 + labelDistance * Math.cos(angleRadians),
-            y: 175 + labelDistance * Math.sin(angleRadians)
-          };
-        }
+        // Calculate position based on midpoint angle
+        const radian = (angleDegrees * Math.PI) / 180;
+        const x = 175 + labelDistance * Math.cos(radian);
+        const y = 175 + labelDistance * Math.sin(radian);
         
-        // Determine text alignment for each position
-        let alignment = "center";
+        // Determine horizontal alignment based on position in circle
+        // Left side labels align right, right side labels align left
+        const isRightHalf = angleDegrees > 270 || angleDegrees < 90;
+        const horizontalAlign = isRightHalf ? "start" : "end";
         
-        if (segment.id === "bad") {
-          alignment = "center";
-        } else if (segment.id === "good") {
-          alignment = "left";
-        } else if (segment.id === "standard") {
-          alignment = "right";
-        }
+        // Determine vertical alignment based on position
+        const isTopHalf = angleDegrees > 0 && angleDegrees < 180;
+        const verticalAlign = isTopHalf ? "start" : "end";
+        
+        // Text anchor determines how the text aligns relative to the point
+        const textAnchor = isRightHalf ? "start" : "end";
+        
+        // Label container positioning and alignment
+        const labelStyle = {
+          left: `${x}px`,
+          top: `${y}px`,
+          textAlign: horizontalAlign as "start" | "end" | "center",
+        };
         
         return (
           <div
             key={`label-${segment.id}`}
-            className="absolute flex flex-col border border-dashed border-blue-400/30 rounded-md p-3"
-            style={{
-              left: `${labelPosition.x}px`,
-              top: `${labelPosition.y}px`,
-              transform: segment.id === "bad" ? "translateX(-50%)" : 
-                        segment.id === "good" ? "translateX(-25%)" : 
-                        segment.id === "standard" ? "translateX(-75%)" : "translateX(-50%)",
-              textAlign: alignment as "left" | "center" | "right",
-              color: segment.color,
-            }}
+            className="absolute"
+            style={labelStyle}
           >
-            <div className="text-5xl font-bold">
-              {segment.label}
-            </div>
-            <div className="text-4xl font-bold mt-1">
-              {segment.value}
+            <div
+              className={`flex flex-col items-${horizontalAlign === "start" ? "start" : "end"} whitespace-nowrap`}
+            >
+              <div className="text-2xl font-bold" style={{ color: segment.color }}>
+                {segment.label}
+              </div>
+              <div className="text-xl font-bold" style={{ color: segment.color }}>
+                {segment.value}
+              </div>
             </div>
           </div>
         );
